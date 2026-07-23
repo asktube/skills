@@ -20,7 +20,6 @@ An **app playlist** is an app-maintained set of videos addressed by 11-character
 | `captions_status` | `{ videoIds }` 1–50 | `{ items: [{ videoId, inLibrary, status, chars, lines, error }] }` |
 | `captions_get` | `{ videoId, method? cat\|head\|tail, len?, from? }` | `cat` (default) → whole transcript under `text`, no timestamps · `head`/`tail` + `len` → timestamped `{ start, text }` lines plus `totalLines`, `from`, `returned`, `hasMore`, `nextFrom` · both carry `complete` · no captions → `{ available: false }`. **Page with `nextFrom` — see [Reading captions at length](#reading-captions-at-length).** |
 
-- **There is no `url` parameter anywhere.** Nothing on the server parses a YouTube URL — extract the 11-char id yourself from `watch?v=<id>`, `youtu.be/<id>`, `shorts/<id>`.
 - A malformed id is a **schema validation error that fails the whole call**, not a per-item business error. Filter before sending.
 - Caption status field is flat **`captionStatus`** on `app_playlists_videos` / `videos_list` / `videos_search`; nested **`caption.status`** (plus `caption.chars/lines/lang/error`) on `videos_get`.
 

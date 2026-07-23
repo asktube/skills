@@ -20,8 +20,8 @@ metadata:
 # deep-research
 
 Deep research over YouTube, grounded in transcripts rather than recall. Discovery runs in the
-browser, against YouTube itself; the corpus, its metadata and its captions live in **asktube**. No
-API keys anywhere. Every claim in the deliverable traces to a video id and a real timestamp.
+browser, against YouTube itself; the corpus, its metadata and its captions live in **asktube**.
+Every claim in the deliverable traces to a video id and a real timestamp.
 
 ## The request
 

@@ -50,8 +50,6 @@ The user's captioned library is free, instant, already indexed, and it is the be
 
 On the two or three strongest hits, `videos_get` for `caption.status` and `captions_get({ videoId })` (method `cat`) to hear how the field actually talks. This is reconnaissance, not the deep read.
 
-Also skim `deep-research/*` for a prior run on this or a neighbouring topic — extend it, don't repeat it.
-
 If the library returns nothing relevant, **say so in one line and move on**. That's a normal outcome for a topic the user has never watched, not a failure — and it's a brief fact worth recording, because the coverage section will report the corpus as 100% newly discovered. Don't invent adjacency to make the step feel productive.
 
 ## 2. Clarify — one round, gaps only
