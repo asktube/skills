@@ -1,0 +1,11 @@
+.DS_Store
+node_modules/
+__pycache__/
+.env
+.env.*
+skills-lock.json
+
+# skill run outputs, if a skill is exercised from inside this repo.
+# Root-anchored on purpose: a bare `deep-research/` would also match
+# skills/deep-research/ and silently drop the skill itself.
+/deep-research/

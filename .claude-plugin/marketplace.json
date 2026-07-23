@@ -1,0 +1,24 @@
+{
+  "name": "asktube-skills",
+  "owner": {
+    "name": "asktube"
+  },
+  "metadata": {
+    "description": "Agent Skills that turn your YouTube library into work, grounded in asktube",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "asktube",
+      "displayName": "asktube skills",
+      "description": "Research, learn from and revise YouTube content you actually hold — grounded in real captions via asktube.",
+      "version": "0.1.0",
+      "source": "./",
+      "strict": false,
+      "license": "MIT",
+      "homepage": "https://asktube.xyz",
+      "keywords": ["youtube", "research", "captions", "transcripts", "asktube"],
+      "skills": ["./skills/deep-research"]
+    }
+  ]
+}
