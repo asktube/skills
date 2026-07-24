@@ -14,8 +14,15 @@ transcripts rather than recalling them.
 
 **Claude Code** — native marketplace, no CLI needed:
 
+First, add the marketplace:
+
 ```
 /plugin marketplace add asktube/skills
+```
+
+Then, add the deep research skill:
+
+```
 /plugin install asktube@asktube-skills
 ```
 
