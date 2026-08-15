@@ -59,6 +59,10 @@ The second command is the one that matters: the grouping only appears if the CLI
 `marketplace.json` and matched your skill's path to the plugin entry. If your skill lists ungrouped,
 you skipped rule 2.
 
+**We follow trunk-based development: commit straight to `main`.** No feature branch, no PR. Run the
+two commands above first — on trunk, a broken manifest is broken for everyone immediately, and the
+CI check you were hoping would catch it is a branch-and-PR habit this repo doesn't have.
+
 ## Keeping the asktube contract honest
 
 `reference/asktube.md` carries a "verified against `asktube@<sha>`" line. asktube ships often, and a
