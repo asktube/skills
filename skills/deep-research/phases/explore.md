@@ -2,7 +2,9 @@
 
 Mine what the user already has, let it sharpen the search, then build a vetted corpus and get it into an asktube app playlist.
 
-*Tool names below are Claude Code's. On any other agent, read `../reference/tooling.md` first.*
+*Before entering this phase, choose the client row in `../reference/tooling.md`. Claude Code uses the
+Claude tool names below; Codex, Cursor, and other IDEs use the mapped asktube and Chrome DevTools
+MCP tools. Do not start unless both required MCP servers are connected.*
 
 ## Resolve once
 
@@ -17,12 +19,15 @@ Resolve all of these now. Nothing below re-derives them.
 | `PLAYLIST_ID` | the `apl-…` recorded in `BRIEF` → else `app_playlists_list({ query })` if PROCESS names one to reuse → else created in step 6, and written back into `BRIEF` |
 | `SIZE` | corpus size from PROCESS. Where PROCESS is silent, **derive it from the question set**: enough that every brief question has at least one source addressing it directly, and every *quantitative* question has two independently-produced ones. 15–25 is the fallback before the brief exists. Do **not** scale the corpus to the length of the deliverable — reading fifteen sources to write 500 confident words is the correct trade, not waste. |
 
-**Tools — two `ToolSearch` calls, up front.**
+**Tools — enable the selected client row before mining.**
 
-- asktube: `select:mcp__asktube__videos_search,mcp__asktube__videos_list,mcp__asktube__videos_get,mcp__asktube__captions_get,mcp__asktube__channels_list,mcp__asktube__channels_search,mcp__asktube__app_playlists_list,mcp__asktube__app_playlists_create,mcp__asktube__app_playlists_add_item,mcp__asktube__app_playlists_videos`
-- Chrome: `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__browser_batch`
+- Claude Code: make the two `ToolSearch` calls named in `../reference/tooling.md`.
+- Codex, Cursor, and other IDEs: call the configured asktube and Chrome DevTools MCP tools directly.
 
-Call `tabs_context_mcp` **first** and work in a **new** tab — never the user's. Inside a `browser_batch` every item needs an explicit `tabId`, and the batch stops at its first error. If the tab group disappears, a standalone `navigate` recreates it and returns fresh ids.
+Inspect the Chrome context first, then work in a **new** tab — never the user's. On Claude Code this is
+`tabs_context_mcp` then `tabs_create_mcp`; elsewhere it is `list_pages` then `new_page`. Claude Code
+may use `browser_batch` with an explicit `tabId`; Chrome DevTools clients issue operations serially.
+If the tab group disappears, navigate in a new tab and use its fresh id.
 
 ## Output of this phase
 
@@ -74,7 +79,12 @@ This is why mining ran first. Write these five things under `## Query plan`:
 
 ## 5. Discover + vet
 
-Run the brief's queries, **relevance-sorted** (`&sp=EgIQAQ%253D%253D` = Type→Video). One `browser_batch` per query: `navigate` then `javascript_tool`, both carrying the explicit `tabId`. The extractor below is the only tool that returns video **ids**; use the text tools only for reading a single page's prose.
+Run the brief's queries, **relevance-sorted** (`&sp=EgIQAQ%253D%253D` = Type→Video). For each query,
+navigate then run the extractor in the same new tab. Claude Code may use one `browser_batch` with
+`navigate` then `javascript_tool`, both carrying the explicit `tabId`. Codex, Cursor, and other IDEs
+must call `navigate_page` then `evaluate_script` sequentially, wrapping the extractor as
+`async () => { …; return { … }; }`. The extractor below is the only tool that returns video **ids**;
+use text tools only for reading a single page's prose.
 
 ```js
 const N=20, SCROLLS=1, SEL='ytd-video-renderer, yt-lockup-view-model';

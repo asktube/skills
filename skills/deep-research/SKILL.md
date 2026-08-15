@@ -10,13 +10,12 @@ description: >-
 argument-hint: "<topic> [+ directives: how to research it, what shape the output should take]"
 license: MIT
 compatibility: >-
-  Needs the asktube MCP server, plus browser automation for YouTube discovery — caption capture runs
-  on asktube's backend and needs no browser. English-language sources only, for now. Runs on Claude
-  Code and Cursor; reference/tooling.md maps every tool name to the capability it stands for, and on
-  Cursor the browser is Chrome DevTools MCP (--autoConnect to your logged-in Chrome) — see its Cursor
-  setup section.
+  Needs an authenticated asktube MCP server and browser automation for YouTube discovery; caption
+  capture runs on asktube's backend and needs no browser. Claude Code uses Claude in Chrome; Codex,
+  Cursor, and other IDEs use Chrome DevTools MCP connected to the user's Chrome. English-language
+  sources only, for now. See reference/tooling.md for the required client-specific setup.
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # deep-research
@@ -61,7 +60,7 @@ These hold no matter what PROCESS or OUTPUT say.
 7. **Before declaring a gap, rule out a tooling artifact.** An empty harvest, a stalled capture queue, an English-only filter over a topic covered mostly elsewhere, and a genuinely thin topic all look identical. Re-run with different vocabulary and check `captions_status` before writing "little content exists on X" — and where the filter is what thinned it, say the corpus was language-filtered rather than reporting a thin topic. A **small** result set is not an empty one — on a niche topic, four good hits per query is the signal, not a failure.
 8. **Never write an empty file, section or directory.** Create folders on first write, not up front.
 9. **Sequence anything whose result you'd have to discard.** A call is only independent of another if you would keep its output regardless of how the other resolves. `captions_prioritize` is *not* independent of the enrichment poll even though the two look unrelated: queue a video whose `title` is still null and it silently returns `accepted: []`, so the call succeeds and captures nothing. Batching pressure — from the harness or from your own instinct to save a round trip — is not a reason to collapse a real dependency.
-10. **Autonomous.** At most one `AskUserQuestion`, in Explore, before the brief is written — and only for a slot `$ARGUMENTS` left open whose answer would change the run. After that there are no approval checkpoints: finish and report. The one exception is a precondition only the user can satisfy — an asktube MCP server that isn't connected, or no browser to discover with. That halt does **not** count against the one-question budget, and the better move is to stop *and offer the options you can see* (library-only is a real path when discovery is unavailable) rather than stop flatly — the user may pick a path you didn't list.
+10. **Autonomous.** At most one `AskUserQuestion`, in Explore, before the brief is written — and only for a slot `$ARGUMENTS` left open whose answer would change the run. After that there are no approval checkpoints: finish and report. The one exception is a precondition only the user can satisfy — an authenticated asktube MCP server, or the required browser MCP for this client, is not connected. That halt does **not** count against the one-question budget: name the missing requirement and stop. Do not downgrade to a library-only run.
 
 ## Output contract
 
@@ -103,7 +102,7 @@ writing. If you are about to capture captions and have not read `research.md`, s
 
 The asktube wire contract and caption-capture protocol live in [reference/asktube.md](reference/asktube.md); the phases invoke it rather than restating it.
 
-Tool names throughout are **Claude Code's**. On Cursor or any other agent, read [reference/tooling.md](reference/tooling.md) first — it maps each one to the capability it stands for (on Cursor the browser is Chrome DevTools MCP), and names what the browser is and isn't needed for (YouTube discovery, never capture).
+Tool names are runtime-specific. Before entering a phase, choose the client row in [reference/tooling.md](reference/tooling.md): Claude Code uses Claude in Chrome; Codex, Cursor, and other IDEs use Chrome DevTools MCP. The browser is required for YouTube discovery and never for caption capture.
 
 Live Chrome is one shared browser: **browsing is serial — never fan sub-agents onto it.** Sub-agents are for stateless work (reading captions, ranking captured text).
 

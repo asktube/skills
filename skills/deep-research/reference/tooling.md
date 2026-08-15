@@ -1,9 +1,8 @@
-# tooling — what this skill needs, and what the Claude Code names mean
+# tooling — required clients and their tool mappings
 
-`SKILL.md` and the phase files are written in **Claude Code's** tool vocabulary, on purpose: naming
-the exact tool is what makes a run fast and reproducible, and diluting it into "use your browser
-tool" costs more than it buys. This file is the translation layer. Read it if you are running this
-skill on anything other than Claude Code.
+The phase files preserve Claude Code's exact names where that is the active runtime. This file is the
+translation layer for every other client: Codex, Cursor, and other IDEs use the same asktube MCP and
+Chrome DevTools MCP contract. Read the selected client row before entering a phase.
 
 ## The two hard requirements
 
@@ -13,51 +12,49 @@ skill on anything other than Claude Code.
 everywhere; only the way your client loads them differs.
 
 **2. Browser automation, for discovery on youtube.com.** Discovery is the *only* thing the browser
-does here. Caption capture runs on asktube's backend — `captions_prioritize` queues it and
-`captions_status` reports it — so nothing has to be open, focused or logged in for a capture to
-complete.
+does here. Claude Code requires Claude in Chrome. Codex, Cursor, and other IDEs require
+[Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp). Caption capture runs
+on asktube's backend — `captions_prioritize` queues it and `captions_status` reports it — so nothing
+has to be open, focused or logged in for a capture to complete.
 
 - The automation must be able to run JavaScript in the page: the search-results extractor in
   `phases/explore.md` is the only thing that returns video **ids**, and it reads the rendered DOM.
-- Driving the user's own Chrome is **preferred, not required**. YouTube meets clean profiles with
+- Driving the user's own Chrome is required outside Claude Code. YouTube meets clean profiles with
   consent and bot interstitials, and the related/recommended sidebar is personalized — a fresh
-  profile gets a different, usually worse, page. A headless or clean-profile Playwright will work if
-  it gets past those.
-- **On Cursor, that automation is [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp).**
-  Run it with `--autoConnect` and it attaches to your *already-running Chrome's default profile* —
-  the logged-in browser this step wants, with no `--remote-debugging-port` juggling (that flag is
-  the fallback; see *Cursor setup* below). `evaluate_script` runs the extractor. One wrinkle:
-  `evaluate_script` takes a **function**, so wrap the `explore.md` extractor as
-  `async () => { …; return { … }; }` — it already `await`s and returns an object, only the outer
-  form differs from Claude's raw-body `javascript_tool`.
+  profile gets a different, usually worse, page. A clean-profile Playwright is not a supported
+  replacement.
+- **Outside Claude Code, Chrome DevTools MCP is required.** Run it with `--autoConnect` and it
+  attaches to your *already-running Chrome's default profile* — the logged-in browser this step
+  wants, with no `--remote-debugging-port` juggling (that flag is the fallback; see *Chrome DevTools
+  MCP setup* below). `evaluate_script` runs the extractor. It takes a **function**, so wrap the
+  `explore.md` extractor as `async () => { …; return { … }; }` — it already `await`s and returns an
+  object; only the outer form differs from Claude's raw-body `javascript_tool`.
 
-If your agent cannot drive a browser at all, this skill still runs **library-only** — mine, brief,
-and read the library. It cannot discover on YouTube. It *can* still capture: anything already in the
-library, or added to a playlist by id, captures backend-side with no browser involved. Say so up
-front rather than discovering it mid-run.
+If either required MCP server is unavailable, stop before starting the run and name the missing
+requirement. This skill does not offer a library-only mode.
 
 ## Capability map
 
-| Capability | Claude Code | Cursor (Chrome DevTools MCP) | Anywhere else |
-|---|---|---|---|
-| Load MCP tools | one `ToolSearch` call per group, e.g. `select:mcp__asktube__me_get,mcp__asktube__videos_search,…` | none — Cursor exposes every configured MCP tool directly; the bare names (`me_get`, `navigate_page`, …) are just callable | however your client enables MCP tools; the bare names (`me_get`, `videos_search`, …) are what matter |
-| Browser automation | the `claude-in-chrome` MCP — `tabs_context_mcp`, `tabs_create_mcp`, `navigate`, `javascript_tool` | `chrome-devtools-mcp` — `list_pages` (context), `new_page` (new tab), `navigate_page`, `evaluate_script` (the extractor, wrapped as a function — see above) | any automation that can load a URL and evaluate JavaScript in the page; the user's own Chrome profile is preferred — see above |
-| Batched browser ops | `browser_batch` (every item carries an explicit `tabId`; the batch stops at its first error) | no batch tool — issue `navigate_page` then `evaluate_script` sequentially | issue the calls sequentially |
-| Ask the user | `AskUserQuestion` — once, per Invariant 10 | Cursor's question prompt (or prose) — once, per Invariant 10 | ask in prose, once |
-| Parallel readers | sub-agents, one per sub-topic, **never onto the browser** | Cursor subagents, one per sub-topic, **never onto the browser**; else read the groups sequentially | read the groups sequentially; the one-question-one-owner rule still applies, and so does "don't paste session history into the prompt" |
-| Read a file | the `Read` tool | the `Read` tool | any file read |
-| Invocation arguments | `$ARGUMENTS` | the user's request, verbatim | the user's request, verbatim |
-| Waiting | a background `sleep` between polls | any non-tight-loop wait; poll every 5–10s | any non-tight-loop wait; poll every 5–10s |
+| Capability | Claude Code | Codex, Cursor, and other IDEs |
+|---|---|---|
+| Load MCP tools | One `ToolSearch` call per group, e.g. `select:mcp__asktube__me_get,mcp__asktube__videos_search,…`. | Use the configured asktube and Chrome DevTools MCP tools directly; bare asktube names (`me_get`, `videos_search`, …) are the contract. |
+| Browser automation | The `claude-in-chrome` MCP: `tabs_context_mcp`, `tabs_create_mcp`, `navigate`, `javascript_tool`. | `chrome-devtools-mcp`: `list_pages` (context), `new_page` (new tab), `navigate_page`, `evaluate_script` (the extractor, wrapped as a function — see above). |
+| Browser sequence | `browser_batch` is allowed; every item carries an explicit `tabId` and the batch stops at its first error. | No batch tool: issue `navigate_page` then `evaluate_script` sequentially in a fresh tab. |
+| Ask the user | `AskUserQuestion` — once, per Invariant 10. | Use the client's user-question capability — Codex calls it `request_user_input` — once, per Invariant 10. |
+| Parallel readers | Sub-agents, one per sub-topic, **never onto the browser**. | Subagents where available, one per sub-topic, **never onto the browser**; otherwise read groups sequentially. The one-question-one-owner rule still applies, as does "don't paste session history into the prompt". |
+| Read a file | The `Read` tool. | Any file-read capability. |
+| Invocation arguments | `$ARGUMENTS`. | The user's request, verbatim. |
+| Waiting | A background `sleep` between polls. | Any non-tight-loop wait; poll every 5–10s. |
 
-## Cursor setup
+## Chrome DevTools MCP setup (Codex, Cursor, and other IDEs)
 
 Two MCP servers, both user-side — nothing is bundled and there is no API key (see *What this skill
-does not depend on*).
+does not depend on*). Configure both in your client's MCP settings before running the skill.
 
-1. **asktube**, authenticated as you — the same server Claude Code uses; add it to Cursor the way
-   you add any MCP server.
-2. **`chrome-devtools-mcp`**, in `.cursor/mcp.json` (or Cursor Settings → MCP). Prefer `--autoConnect`
-   so it drives your logged-in Chrome:
+1. **asktube**, authenticated as you — the same server Claude Code uses; add it as an MCP server in
+   Codex, Cursor, or your chosen IDE.
+2. **`chrome-devtools-mcp`**, configured in the same client. Prefer `--autoConnect` so it drives your
+   logged-in Chrome. In Cursor, add it in `.cursor/mcp.json` (or Cursor Settings → MCP):
 
 ```json
 {
@@ -73,8 +70,9 @@ does not depend on*).
 `--autoConnect` requires a Chrome to already be running and attaches to its default profile — the
 logged-in browser discovery wants. If you would rather point at an explicit instance, start Chrome
 with `--remote-debugging-port=9222` and swap the arg for `--browser-url=http://127.0.0.1:9222`.
-There is **no batch tool**, so where a phase says `browser_batch`, run `navigate_page` then
-`evaluate_script` as two sequential calls in a fresh tab (`new_page`) — never the user's active tab.
+There is **no batch tool**, so where a phase refers to a Claude `browser_batch`, run `navigate_page`
+then `evaluate_script` as two sequential calls in a fresh tab (`new_page`) — never the user's active
+tab.
 
 ## Oversized tool output
 
