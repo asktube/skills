@@ -11,8 +11,10 @@ argument-hint: "<topic> [+ directives: how to research it, what shape the output
 license: MIT
 compatibility: >-
   Needs the asktube MCP server, plus browser automation for YouTube discovery — caption capture runs
-  on asktube's backend and needs no browser. English-language sources only, for now. Written for
-  Claude Code — reference/tooling.md maps every Claude Code tool name to the capability it stands for.
+  on asktube's backend and needs no browser. English-language sources only, for now. Runs on Claude
+  Code and Cursor; reference/tooling.md maps every tool name to the capability it stands for, and on
+  Cursor the browser is Chrome DevTools MCP (--autoConnect to your logged-in Chrome) — see its Cursor
+  setup section.
 metadata:
   version: "0.2.0"
 ---
@@ -101,7 +103,7 @@ writing. If you are about to capture captions and have not read `research.md`, s
 
 The asktube wire contract and caption-capture protocol live in [reference/asktube.md](reference/asktube.md); the phases invoke it rather than restating it.
 
-Tool names throughout are **Claude Code's**. On any other agent, read [reference/tooling.md](reference/tooling.md) first — it maps each one to the capability it stands for, and names what the browser is and isn't needed for (YouTube discovery, never capture).
+Tool names throughout are **Claude Code's**. On Cursor or any other agent, read [reference/tooling.md](reference/tooling.md) first — it maps each one to the capability it stands for (on Cursor the browser is Chrome DevTools MCP), and names what the browser is and isn't needed for (YouTube discovery, never capture).
 
 Live Chrome is one shared browser: **browsing is serial — never fan sub-agents onto it.** Sub-agents are for stateless work (reading captions, ranking captured text).
 

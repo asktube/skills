@@ -43,7 +43,10 @@ install.
 1. An **asktube** account with some of your YouTube library tracked, and the asktube **MCP server**
    connected to your agent.
 2. **A Chrome the agent can drive**, for discovery on YouTube. Caption capture happens on asktube's
-   backend — nothing to install, and no tab to keep open or in focus.
+   backend — nothing to install, and no tab to keep open or in focus. On **Cursor** that Chrome is
+   your own logged-in browser via [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp)
+   run with `--autoConnect`; the skill's
+   [`reference/tooling.md`](skills/deep-research/reference/tooling.md) has the exact config.
 
 Corpora are English-language for now; asktube's multi-language support is still in progress, so a
 run prefers English sources and says so in its coverage section.
