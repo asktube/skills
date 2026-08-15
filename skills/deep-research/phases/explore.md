@@ -19,24 +19,14 @@ Resolve all of these now. Nothing below re-derives them.
 
 **Tools — two `ToolSearch` calls, up front.**
 
-- asktube: `select:mcp__asktube__me_get,mcp__asktube__videos_search,mcp__asktube__videos_list,mcp__asktube__videos_get,mcp__asktube__captions_get,mcp__asktube__channels_list,mcp__asktube__channels_search,mcp__asktube__app_playlists_list,mcp__asktube__app_playlists_create,mcp__asktube__app_playlists_add_item,mcp__asktube__app_playlists_videos`
+- asktube: `select:mcp__asktube__videos_search,mcp__asktube__videos_list,mcp__asktube__videos_get,mcp__asktube__captions_get,mcp__asktube__channels_list,mcp__asktube__channels_search,mcp__asktube__app_playlists_list,mcp__asktube__app_playlists_create,mcp__asktube__app_playlists_add_item,mcp__asktube__app_playlists_videos`
 - Chrome: `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__browser_batch`
 
 Call `tabs_context_mcp` **first** and work in a **new** tab — never the user's. Inside a `browser_batch` every item needs an explicit `tabId`, and the batch stops at its first error. If the tab group disappears, a standalone `navigate` recreates it and returns fresh ids.
 
 ## Output of this phase
 
-`<DIR>corpus.md` — the decision doc a cold Research phase starts from. A reader must be able to answer: which videos are we studying and **why each one** (one line: authority / specificity / recency) · which were **already captioned** in the library vs newly curated · the app-playlist id and its videoIds · which brief question the corpus does **not** yet cover, and what was tried · what recency and vetting policy applied and what it excluded. Rank best-first; a table is usually right. Nothing else is prescribed.
-
-## 0. Verify identity — first, and it can stop the run
-
-Caption queues are per-account, so the MCP token and the browser session must be the **same** asktube account. A mismatch makes the entire capture phase fail silently, and it is cheapest to find now — before discovery, not after.
-
-Follow **Identity** in `../reference/asktube.md`: `me_get()` for the MCP side, `fetch('/api/me')` from an `app.asktube.xyz` tab for the browser side, compare `sub`.
-
-⚠️ **Run this alone — nothing else in the same block.** Do not batch `videos_search`, `channels_*` or any other library call alongside it to save a round trip. Library contents are per-account: mining against an unverified account yields a corpus you must discard wholesale, and a wrong library looks entirely plausible while you're reading it. The calls only *look* independent (SKILL.md, Invariant 9).
-
-If they differ, or the browser isn't logged in: **report both identities, name the two fixes, and stop.** This halt is exempt from the one-`AskUserQuestion` budget, so prefer stopping *with options* over stopping flat — "fix the account" and "run library-only, no capture needed" are both real paths, and the user may choose a third. Nothing you can do resolves a wrong account.
+`<DIR>corpus.md` — the decision doc a cold Research phase starts from. A reader must be able to answer: which videos are we studying and **why each one** (one line: authority / specificity / recency) · which were **already captioned** in the library vs newly curated · the app-playlist id and its videoIds · which brief question the corpus does **not** yet cover, and what was tried · what recency, language and vetting policy applied and what each excluded. Rank best-first; a table is usually right. Nothing else is prescribed.
 
 ## 1. Mine the library
 
@@ -49,6 +39,8 @@ The user's captioned library is free, instant, already indexed, and it is the be
 ⚠️ **Caption full-text search is high-precision, low-recall.** Unlike web search it rewards the exact phrase and punishes conceptual paraphrase. On one run `recursive language models RLM` returned 9 hits while the paraphrase `long context window REPL agent decomposition` returned 2 — and the paraphrase missed the primary source entirely. Run the topic's own words verbatim *before* you get clever, and read a paraphrase's silence as a fact about the query, not about the library.
 
 On the two or three strongest hits, `videos_get` for `caption.status` and `captions_get({ videoId })` (method `cat`) to hear how the field actually talks. This is reconnaissance, not the deep read.
+
+The library is the user's own, so it can hold anything — **seeds follow the same English-first rule as step 5**. A non-English library video is not a free seed just because its captions already read `done`.
 
 If the library returns nothing relevant, **say so in one line and move on**. That's a normal outcome for a topic the user has never watched, not a failure — and it's a brief fact worth recording, because the coverage section will report the corpus as 100% newly discovered. Don't invent adjacency to make the step feel productive.
 
@@ -74,7 +66,7 @@ The questions are the acceptance test for the whole run. Writing them *before* a
 
 This is why mining ran first. Write these five things under `## Query plan`:
 
-- **Vocabulary** — the terms practitioners actually use in these titles, and the homonyms to steer away from ("product hunt" collides with e-commerce "product hunting"). Queries use the former and disambiguate against the latter.
+- **Vocabulary** — the terms practitioners actually use in these titles, and the homonyms to steer away from ("product hunt" collides with e-commerce "product hunting"). Queries use the former and disambiguate against the latter. **Write the queries in English**: a non-English phrasing returns a non-English result page, and this pipeline cannot read that corpus.
 - **Coverage** — sub-topics the library already answers (search shallowly or not at all) and the ones it doesn't (search hard). Effort is allocated against this, not spread evenly.
 - **Authority channels** — search *within* them (`<channel> <sub-topic>`) rather than hoping generic relevance surfaces them.
 - **Seeds** — library videos already `done` on captions that belong in the corpus. They cost nothing and are readable immediately, with no capture wait.
@@ -115,8 +107,9 @@ const rows=[...document.querySelectorAll(SEL)].map(v=>{
 - Empty `desc` is normal; YouTube shows snippets on only some results.
 - **Recency is decided after ingest, not here.** The DOM reports coarse buckets (`"1 year ago"`) that cannot decide a month-precision rule, and it fails *silently*: a source displayed as "1 year ago" is anywhere from 12 to 23 months old. *Observed:* two pricing sources read "1 year ago" and were actually **17 and 23 months** old, both outside the brief's window — presented as current prices with nothing flagging it. So treat the bucket as a **pre-filter only** (for strict-recent, add `&& !/year/i.test(x.age)` to drop anything a year or older — YouTube's own "This year" UI filter is calendar-year and silently drops the trailing months). The exact date arrives free at step 6: ingest enriches every added video with a real `publishedAt`, and that is what the recency policy is enforced against.
 - **Vet on** title + `desc` + channel track-record + recency, judged against the brief's vocabulary and coverage map. Drop homonyms, promo clips, thin content. Favour recall — the caption read is the real filter — but every added video costs a capture slot and a read, so hold to `SIZE`.
+- **English first.** asktube has no multi-language support yet, so an English-language video is the default keeper: judge from the title, the `desc` snippet and the channel, and drop non-English candidates **here**, before they cost a capture slot and a read. Two traps: an English *title* on a non-English video is not an English video — channels title in English for reach — and an English-language video *about* a non-English-speaking market is fine. Admit a non-English source only when a brief question has **no** English coverage at all; then log it in `corpus.md` as exactly that, expect its captions to be unusable, and treat it as a gap rather than a source (Invariant 3). A language-filtered corpus is reported as language-filtered, never as a thin topic (Invariant 7).
 - **Cap sources per thesis at two.** Invariant 5 needs *two independently-produced* sources to quantify a claim — a third and fourth restating the same argument buy nothing and cost a capture slot, an agent's reading time, and a row in the watch order you will end up marking "skip". *Observed:* four videos arguing one "drop the paid tool, wire up the raw API yourself" thesis were all curated, and all four were ultimately marked skip. Keep the two strongest, log the rest in `corpus.md` as *same-thesis, dropped for redundancy*. **The exception is a contested claim** — where sources actively disagree, extra voices are evidence about the spread, so keep them and say why.
-- **Tag every keeper with a source tier**, now, while the channel is in front of you: `primary` (the author, their institution, the vendor shipping the thing) · `practitioner` (built with it, reporting their own results) · `secondary` (human-made explainer) · `ai-narrated` (synthetic voice, stock footage, no primary reporting — increasingly the *majority* of results on any new technical term). This is what Invariant 5 keys off later: an `ai-narrated` source may **corroborate** a number but may never be the only source for one. Carry the tier into `corpus.md`. Keeping a couple of good `ai-narrated` explainers is fine and often useful — they are frequently the only ones that bother to tabulate benchmark results — but they are corroboration, never authority.
+- **Tag every keeper with a source tier**, now, while the channel is in front of you: `primary` (the author, their institution, the vendor shipping the thing) · `practitioner` (built with it, reporting their own results) · `secondary` (human-made explainer) · `ai-narrated` (synthetic voice, stock footage, no primary reporting — increasingly the *majority* of results on any new technical term). This is what Invariant 5 keys off later: an `ai-narrated` source may **corroborate** a number but may never be the only source for one. Carry the tier into `corpus.md` — and alongside it, a language note for any non-English keeper the exception above let through. Keeping a couple of good `ai-narrated` explainers is fine and often useful — they are frequently the only ones that bother to tabulate benchmark results — but they are corroboration, never authority.
 - *Optional, for suspiciously high-view candidates only:* read the like count from the like button's `aria-label` (`[...document.querySelectorAll('button')].map(b=>b.getAttribute('aria-label')||'').find(l=>/like this video/i.test(l))`) → like/view >3% is strong; high views with <0.5% likes is botted, exclude.
 - The logged-in related/recommended sidebar is **personalized** — use it to fill a sub-topic no query reached, never as primary discovery.
 - Counts are abbreviated (`1.2M`, `12K`); approximate is fine, invented is not.

@@ -18,15 +18,15 @@ Resolve all of these now. Nothing below re-derives them.
 | `SHAPE` | the OUTPUT directive in `BRIEF`, overridden by any shape wording in `$ARGUMENTS`; default = a deep-research report |
 | `AMENDMENT` | anything in `$ARGUMENTS` past the slug — append to `BRIEF` as a dated amendment, then honour it |
 
-**Precondition:** caption capture runs in the user's browser. `https://app.asktube.xyz/ui/` must be open, foregrounded, and logged in **as the same account the MCP token is bound to**. MCP only queues.
+**Precondition: none in the browser.** Caption capture runs on asktube's backend — MCP queues it and `captions_status` reports it. Nothing has to be open, focused or logged in anywhere for a capture to complete. This phase needs no browser tools at all.
 
-Explore verifies that identity at its step 0. **If you entered here on a RESUME and did not just run Explore, run the Identity check in `../reference/asktube.md` now** — it is the one precondition that fails silently and wastes the whole capture timebox.
-
-**Tools — one `ToolSearch` call:** `select:mcp__asktube__me_get,mcp__asktube__app_playlists_videos,mcp__asktube__app_playlists_remove_item,mcp__asktube__captions_prioritize,mcp__asktube__captions_status,mcp__asktube__captions_get,mcp__asktube__videos_get,mcp__asktube__videos_list,mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__computer`
+**Tools — one `ToolSearch` call:** `select:mcp__asktube__app_playlists_videos,mcp__asktube__app_playlists_remove_item,mcp__asktube__captions_prioritize,mcp__asktube__captions_status,mcp__asktube__captions_get,mcp__asktube__videos_get,mcp__asktube__videos_list`
 
 ## 1. Capture
 
-Follow `../reference/asktube.md` (relative to this file) exactly. The order is load-bearing: **assert the tab is visible** → set the capture toggle to **Priority only** → wait for enrichment (non-null titles) → `captions_prioritize` and **verify `accepted`** → poll `captions_status` → timebox and prune. Don't restate the protocol here; if it misbehaves, that's a `retro.md` entry.
+Follow `../reference/asktube.md` (relative to this file) exactly: wait for enrichment (non-null titles) → `captions_prioritize` and **verify `accepted`** → poll `captions_status` → timebox and prune. Don't restate the protocol here; if it misbehaves, that's a `retro.md` entry.
+
+⚠️ **The enrichment wait is the one ordering that matters.** `captions_prioritize` silently returns `accepted: []` for a video whose `title` is still null, so queueing early looks like it worked and captures nothing. Verify `accepted` against what you sent, every time.
 
 **The capture wait is not dead time.** Seeds carried over from the library are already `done` and need no capture — start the deep read on them while the queue drains, and poll `captions_status` *between reads* rather than between sleeps. On a corpus that is half seeds this takes the entire capture window off the critical path.
 
@@ -37,6 +37,8 @@ Then close the corpus: proceed with everything `done`, `app_playlists_remove_ite
 PROCESS in the brief is the user's instruction on method; follow it. Where it's silent, choose. What follows is what has worked, not a procedure you owe anyone.
 
 Read the whole transcript before pinning any timestamp. `captions_get({ videoId })` (method `cat`, the default) returns the whole transcript as one plain-text string under `text` — cheapest, no timestamps. `method: "head"` / `"tail"` with `len` return timestamped `{ start, text }` lines; convert `start` seconds to `[mm:ss]`. Understand first, then go back for the seconds.
+
+**If a transcript turns out not to be English, stop reading it.** Drop the video, and record it in `<DIR>corpus.md` as a language drop that discovery vetting missed — asktube has no multi-language support yet, so there is nothing to salvage. This costs nothing: you already hold the text.
 
 ⚠️ **Page with `nextFrom`, never `from + len`**, and treat `complete: false` as a stated gap rather than an absent finding. Both rules and why they exist are in **Reading captions at length** in `../reference/asktube.md` — read it before paging an hour-long transcript.
 

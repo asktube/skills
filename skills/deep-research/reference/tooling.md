@@ -12,30 +12,30 @@ skill on anything other than Claude Code.
 `captions_prioritize`, `captions_status`) is an MCP tool on that server. Tool *names* are the same
 everywhere; only the way your client loads them differs.
 
-**2. Browser automation driving the user's own logged-in Chrome.** This one is not negotiable and it
-is the most common way a port of this skill fails silently:
+**2. Browser automation, for discovery on youtube.com.** Discovery is the *only* thing the browser
+does here. Caption capture runs on asktube's backend — `captions_prioritize` queues it and
+`captions_status` reports it — so nothing has to be open, focused or logged in for a capture to
+complete.
 
-- asktube's caption capture runs **in the browser**, in the asktube extension. MCP only *queues*;
-  the drain happens in the tab. A headless or clean-profile Playwright has neither the
-  `asktube_sess` cookie nor the extension, so `captions_prioritize` accepts the ids, nothing ever
-  captures, and the poll simply times out with no error anywhere.
-- The identity check in `reference/asktube.md` compares the MCP account against the *browser's*
-  account. It is only meaningful if the browser you drive is the user's real one.
-- The automation must also be able to run JavaScript in the page (the search-results extractor and
-  `document.visibilityState` probe both need it) and to foreground a tab.
+- The automation must be able to run JavaScript in the page: the search-results extractor in
+  `phases/explore.md` is the only thing that returns video **ids**, and it reads the rendered DOM.
+- Driving the user's own Chrome is **preferred, not required**. YouTube meets clean profiles with
+  consent and bot interstitials, and the related/recommended sidebar is personalized — a fresh
+  profile gets a different, usually worse, page. A headless or clean-profile Playwright will work if
+  it gets past those.
 
-If your agent cannot drive the user's real Chrome, this skill can still run **library-only** — mine,
-brief, and read whatever already has `captionStatus: done`. It cannot discover on YouTube or capture
-new captions. Say so up front rather than discovering it at the capture timebox.
+If your agent cannot drive a browser at all, this skill still runs **library-only** — mine, brief,
+and read the library. It cannot discover on YouTube. It *can* still capture: anything already in the
+library, or added to a playlist by id, captures backend-side with no browser involved. Say so up
+front rather than discovering it mid-run.
 
 ## Capability map
 
 | Capability | Claude Code | Anywhere else |
 |---|---|---|
 | Load MCP tools | one `ToolSearch` call per group, e.g. `select:mcp__asktube__me_get,mcp__asktube__videos_search,…` | however your client enables MCP tools; the bare names (`me_get`, `videos_search`, …) are what matter |
-| Browser automation | the `claude-in-chrome` MCP — `tabs_context_mcp`, `tabs_create_mcp`, `navigate`, `javascript_tool`, `computer` | any automation attached to the user's **own Chrome profile** with the asktube extension present — see above |
+| Browser automation | the `claude-in-chrome` MCP — `tabs_context_mcp`, `tabs_create_mcp`, `navigate`, `javascript_tool` | any automation that can load a URL and evaluate JavaScript in the page; the user's own Chrome profile is preferred — see above |
 | Batched browser ops | `browser_batch` (every item carries an explicit `tabId`; the batch stops at its first error) | issue the calls sequentially |
-| Foreground a tab | a `computer` screenshot does it | whatever interaction your tool has that makes the tab visible; verify with `document.visibilityState` |
 | Ask the user | `AskUserQuestion` — once, per Invariant 10 | ask in prose, once |
 | Parallel readers | sub-agents, one per sub-topic, **never onto the browser** | read the groups sequentially; the one-question-one-owner rule still applies, and so does "don't paste session history into the prompt" |
 | Read a file | the `Read` tool | any file read |

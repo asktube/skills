@@ -10,18 +10,19 @@ description: >-
 argument-hint: "<topic> [+ directives: how to research it, what shape the output should take]"
 license: MIT
 compatibility: >-
-  Needs the asktube MCP server and browser automation driving the user's own logged-in Chrome
-  (the asktube extension does the caption capture). Written for Claude Code — reference/tooling.md
-  maps every Claude Code tool name to the capability it stands for.
+  Needs the asktube MCP server, plus browser automation for YouTube discovery — caption capture runs
+  on asktube's backend and needs no browser. English-language sources only, for now. Written for
+  Claude Code — reference/tooling.md maps every Claude Code tool name to the capability it stands for.
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # deep-research
 
 Deep research over YouTube, grounded in transcripts rather than recall. Discovery runs in the
-browser, against YouTube itself; the corpus, its metadata and its captions live in **asktube**.
-Every claim in the deliverable traces to a video id and a real timestamp.
+browser, against YouTube itself; the corpus, its metadata and its captions live in **asktube**,
+which fetches the captions on its own backend. Every claim in the deliverable traces to a video id
+and a real timestamp.
 
 ## The request
 
@@ -34,11 +35,16 @@ Parse it into four slots, restate them back in ≤4 lines, then start. Don't wai
 | Slot | What it captures | If unspecified |
 |---|---|---|
 | **TOPIC** | the subject, who it's for, the decision or understanding it must enable | required — if the request names no topic, ask; this is the only blocking gap |
-| **PROCESS** | *how* to research: depth, recency, sub-topics to force in or out, source bias (official vs practitioner), corpus size, `into app playlist <name>` to reuse one, "my library only" | phase defaults |
+| **PROCESS** | *how* to research: depth, recency, language, sub-topics to force in or out, source bias (official vs practitioner), corpus size, `into app playlist <name>` to reuse one, "my library only" | phase defaults |
 | **OUTPUT** | *what shape* the deliverable takes: "a 4-week study plan", "a one-pager", "a checklist I can paste into Linear", "just the shortlist" | a deep-research report |
 | **RESUME** | "resume at research", "re-render as a one-pager", "add 10 more videos on X", a bare slug | fresh run |
 
 **Directives beat defaults. Directives never beat the invariants or the output contract.**
+
+**English-first.** asktube has no multi-language support yet, so discovery, vetting and the corpus
+all default to English-language videos. A non-English source enters only when a brief question has
+no English coverage at all — and then it is named as such in `corpus.md` and in coverage, not
+quietly cited. A PROCESS directive can widen this; nothing else should.
 
 ## Invariants
 
@@ -49,11 +55,11 @@ These hold no matter what PROCESS or OUTPUT say.
 3. **Cite only what you read.** A video may be cited only if its captions reached `done` and you read them. A video added but never captured is a *gap*, not a source.
 4. **Every non-obvious claim carries `(videoId, [mm:ss])`.**
 5. **Corroborate before quantifying.** A specific number, benchmark result, price or date enters the deliverable only if it comes from a **primary** source (the author, the institution, or the vendor) **or** two independently-produced sources agree. Otherwise it stays in `notes/`, named as single-sourced in the coverage section. Grounding proves a claim was *said*, not that it is *true* — an AI-narrated summary with a real timestamp is still an AI-narrated summary, and on YouTube that is now the likeliest way a wrong number reaches the page.
-6. **State coverage honestly** — what the corpus doesn't cover, which videos were dropped and why, which recency policy applied and what it excluded. "Found nothing credible on X" is a real, publishable result.
-7. **Before declaring a gap, rule out a tooling artifact.** An empty harvest, a stalled capture queue and a genuinely thin topic look identical. Re-run with different vocabulary and check `captions_status` before writing "little content exists on X". A **small** result set is not an empty one — on a niche topic, four good hits per query is the signal, not a failure.
+6. **State coverage honestly** — what the corpus doesn't cover, which videos were dropped and why, which recency and language policies applied and what each excluded. "Found nothing credible on X" is a real, publishable result.
+7. **Before declaring a gap, rule out a tooling artifact.** An empty harvest, a stalled capture queue, an English-only filter over a topic covered mostly elsewhere, and a genuinely thin topic all look identical. Re-run with different vocabulary and check `captions_status` before writing "little content exists on X" — and where the filter is what thinned it, say the corpus was language-filtered rather than reporting a thin topic. A **small** result set is not an empty one — on a niche topic, four good hits per query is the signal, not a failure.
 8. **Never write an empty file, section or directory.** Create folders on first write, not up front.
-9. **Sequence anything whose result you'd have to discard.** A call is only independent of another if you would keep its output regardless of how the other resolves. Library contents are per-account, so `videos_search` is *not* independent of the identity check even though the two look unrelated. Batching pressure — from the harness or from your own instinct to save a round trip — is not a reason to collapse a real dependency.
-10. **Autonomous.** At most one `AskUserQuestion`, in Explore, before the brief is written — and only for a slot `$ARGUMENTS` left open whose answer would change the run. After that there are no approval checkpoints: finish and report. The one exception is a precondition only the user can satisfy — notably an asktube **identity mismatch** (Explore step 0). That halt does **not** count against the one-question budget, and the better move is to stop *and offer the options you can see* (fix the account, or run library-only) rather than stop flatly — the user may pick a path you didn't list.
+9. **Sequence anything whose result you'd have to discard.** A call is only independent of another if you would keep its output regardless of how the other resolves. `captions_prioritize` is *not* independent of the enrichment poll even though the two look unrelated: queue a video whose `title` is still null and it silently returns `accepted: []`, so the call succeeds and captures nothing. Batching pressure — from the harness or from your own instinct to save a round trip — is not a reason to collapse a real dependency.
+10. **Autonomous.** At most one `AskUserQuestion`, in Explore, before the brief is written — and only for a slot `$ARGUMENTS` left open whose answer would change the run. After that there are no approval checkpoints: finish and report. The one exception is a precondition only the user can satisfy — an asktube MCP server that isn't connected, or no browser to discover with. That halt does **not** count against the one-question budget, and the better move is to stop *and offer the options you can see* (library-only is a real path when discovery is unavailable) rather than stop flatly — the user may pick a path you didn't list.
 
 ## Output contract
 
@@ -62,7 +68,7 @@ OUTPUT decides shape, format, length and file names. It does not relax these pro
 - **Answers the brief** — every question in the brief's Frame answered, or explicitly listed as unanswered with the reason.
 - **Grounded** — every non-obvious claim carries its video id and timestamp.
 - **Each cited source carries a watch verdict** — `watch in full` / `skim <range>` / `skip — the notes are enough`.
-- **A coverage section** — corpus size, recency policy and what it excluded, drops with reasons, sub-topics nothing credible covered.
+- **A coverage section** — corpus size, recency and language policies and what each excluded, drops with reasons, sub-topics nothing credible covered.
 - **Portable Markdown** unless OUTPUT says otherwise: relative links, `- [ ]` for anything checkable, no tool-specific syntax.
 - **No layer restates another.** If a document would mostly re-render one you already wrote, merge them instead.
 
@@ -95,7 +101,7 @@ writing. If you are about to capture captions and have not read `research.md`, s
 
 The asktube wire contract and caption-capture protocol live in [reference/asktube.md](reference/asktube.md); the phases invoke it rather than restating it.
 
-Tool names throughout are **Claude Code's**. On any other agent, read [reference/tooling.md](reference/tooling.md) first — it maps each one to the capability it stands for and names the one substitution that is not negotiable (browser automation must drive the user's own logged-in Chrome).
+Tool names throughout are **Claude Code's**. On any other agent, read [reference/tooling.md](reference/tooling.md) first — it maps each one to the capability it stands for, and names what the browser is and isn't needed for (YouTube discovery, never capture).
 
 Live Chrome is one shared browser: **browsing is serial — never fan sub-agents onto it.** Sub-agents are for stateless work (reading captions, ranking captured text).
 

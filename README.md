@@ -42,9 +42,11 @@ install.
 
 1. An **asktube** account with some of your YouTube library tracked, and the asktube **MCP server**
    connected to your agent.
-2. **The same account logged into Chrome**, with the asktube extension. Caption capture runs in your
-   browser — MCP only queues it. A skill run will stop early and tell you if the MCP token and the
-   browser session belong to different accounts, because that failure is otherwise silent.
+2. **A Chrome the agent can drive**, for discovery on YouTube. Caption capture happens on asktube's
+   backend — nothing to install, and no tab to keep open or in focus.
+
+Corpora are English-language for now; asktube's multi-language support is still in progress, so a
+run prefers English sources and says so in its coverage section.
 
 No API keys. No other plugins. Nothing else to configure.
 
