@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Agent Skills that turn your YouTube library into work, grounded in asktube",
-    "version": "0.1.0"
+    "version": "0.4.0"
   },
   "plugins": [
     {
       "name": "asktube",
       "displayName": "asktube skills",
       "description": "Research, learn from and revise YouTube content you actually hold — grounded in real captions via asktube.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "./",
       "strict": false,
       "license": "MIT",

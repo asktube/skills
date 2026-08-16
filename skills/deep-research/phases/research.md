@@ -2,9 +2,9 @@
 
 Get the curated corpus readable, read it into evidence, and write the deliverable.
 
-*Before entering this phase, choose the client row in `../reference/tooling.md`. Claude Code uses the
-tool names below; Codex, Cursor, and other IDEs call the mapped asktube MCP tools directly. Do not
-start unless asktube MCP is connected.*
+*The preflight in `SKILL.md` has already confirmed asktube. The bare tool names below are the
+contract in every client; `../reference/tooling.md` says how yours loads them. This phase touches no
+browser, so `BROWSER` is irrelevant here.*
 
 ## Resolve once
 
@@ -22,9 +22,8 @@ Resolve all of these now. Nothing below re-derives them.
 
 **Precondition: none in the browser.** Caption capture runs on asktube's backend — MCP queues it and `captions_status` reports it. Nothing has to be open, focused or logged in anywhere for a capture to complete. This phase needs no browser tools at all.
 
-**Tools — enable the asktube group in the selected client row.** Claude Code makes the `ToolSearch`
-call named in `../reference/tooling.md`; Codex, Cursor, and other IDEs call the configured asktube
-MCP tools directly.
+**Tools — load the asktube group.** Claude Code makes the `ToolSearch` call named in
+`../reference/tooling.md`; every other client calls the configured asktube MCP tools directly.
 
 ## 1. Capture
 

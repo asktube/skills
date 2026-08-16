@@ -2,9 +2,8 @@
 
 Mine what the user already has, let it sharpen the search, then build a vetted corpus and get it into an asktube app playlist.
 
-*Before entering this phase, choose the client row in `../reference/tooling.md`. Claude Code uses the
-Claude tool names below; Codex, Cursor, and other IDEs use the mapped asktube and Chrome DevTools
-MCP tools. Do not start unless both required MCP servers are connected.*
+*The preflight in `SKILL.md` has already confirmed asktube and resolved `BROWSER`. Don't re-derive
+either. Browser steps below branch on `BROWSER`; the mapping is in `../reference/tooling.md`.*
 
 ## Resolve once
 
@@ -19,15 +18,17 @@ Resolve all of these now. Nothing below re-derives them.
 | `PLAYLIST_ID` | the `apl-…` recorded in `BRIEF` → else `app_playlists_list({ query })` if PROCESS names one to reuse → else created in step 6, and written back into `BRIEF` |
 | `SIZE` | corpus size from PROCESS. Where PROCESS is silent, **derive it from the question set**: enough that every brief question has at least one source addressing it directly, and every *quantitative* question has two independently-produced ones. 15–25 is the fallback before the brief exists. Do **not** scale the corpus to the length of the deliverable — reading fifteen sources to write 500 confident words is the correct trade, not waste. |
 
-**Tools — enable the selected client row before mining.**
+**Tools — load them before mining.** Claude Code makes the two `ToolSearch` calls named in
+`../reference/tooling.md`; every other client calls the configured tools directly.
 
-- Claude Code: make the two `ToolSearch` calls named in `../reference/tooling.md`.
-- Codex, Cursor, and other IDEs: call the configured asktube and Chrome DevTools MCP tools directly.
+Inspect the Chrome context first, then work in a **new** tab — never the user's:
 
-Inspect the Chrome context first, then work in a **new** tab — never the user's. On Claude Code this is
-`tabs_context_mcp` then `tabs_create_mcp`; elsewhere it is `list_pages` then `new_page`. Claude Code
-may use `browser_batch` with an explicit `tabId`; Chrome DevTools clients issue operations serially.
-If the tab group disappears, navigate in a new tab and use its fresh id.
+| `BROWSER` | Context | New tab | Sequencing |
+|---|---|---|---|
+| `devtools` | `list_pages` | `new_page` | one operation at a time; no batch tool |
+| `cic` | `tabs_context_mcp` | `tabs_create_mcp` | `browser_batch` allowed, every item carrying an explicit `tabId` |
+
+If the tab disappears, open a fresh one and use its new id.
 
 ## Output of this phase
 
@@ -80,11 +81,45 @@ This is why mining ran first. Write these five things under `## Query plan`:
 ## 5. Discover + vet
 
 Run the brief's queries, **relevance-sorted** (`&sp=EgIQAQ%253D%253D` = Type→Video). For each query,
-navigate then run the extractor in the same new tab. Claude Code may use one `browser_batch` with
-`navigate` then `javascript_tool`, both carrying the explicit `tabId`. Codex, Cursor, and other IDEs
-must call `navigate_page` then `evaluate_script` sequentially, wrapping the extractor as
-`async () => { …; return { … }; }`. The extractor below is the only tool that returns video **ids**;
-use text tools only for reading a single page's prose.
+navigate then run the extractor in the same new tab:
+
+- `BROWSER = devtools` → `navigate_page`, then `evaluate_script`, sequentially.
+- `BROWSER = cic` → one `browser_batch` with `navigate` then `javascript_tool`, both carrying the
+  explicit `tabId`.
+
+The extractor is the only tool that returns video **ids**; use text tools only for reading a single
+page's prose. ⚠️ **The two tools take incompatible shapes and both fail silently on the wrong one** —
+`evaluate_script` takes a function and needs its `return`; `javascript_tool` is a REPL where the last
+expression *is* the result and a `return` is a syntax error at top level. Both forms are written out
+below. **Copy the one that matches `BROWSER`. Never convert one into the other by hand.**
+
+For `evaluate_script` — pass the whole function:
+
+```js
+async () => {
+  const N=20, SCROLLS=1, SEL='ytd-video-renderer, yt-lockup-view-model';
+  const w=ms=>new Promise(r=>setTimeout(r,ms));
+  for(let i=0;i<25&&!document.querySelector(SEL);i++){await w(300);}
+  for(let i=0;i<SCROLLS;i++){window.scrollTo(0,document.documentElement.scrollHeight);await w(900);}
+  const rows=[...document.querySelectorAll(SEL)].map(v=>{
+    const a=v.querySelector('a#video-title, a#video-title-link, a.yt-lockup-metadata-view-model__title');
+    const id=((a?.href||'').match(/[?&]v=([^&]+)/)||[])[1]||'';
+    const chA=v.querySelector('ytd-channel-name a, .yt-content-metadata-view-model__metadata-row a');
+    const m=[...v.querySelectorAll('#metadata-line .inline-metadata-item, .yt-content-metadata-view-model__metadata-text')].map(s=>s.textContent.trim());
+    return {title:(a?.title||a?.textContent||'').trim(), id,
+      ch:(chA?.textContent||'').trim(), chUrl:chA?.href||'',
+      views:m.find(t=>/view|watching/i.test(t))||'', age:m.find(t=>/ago/i.test(t))||'',
+      dur:(v.querySelector('ytd-thumbnail badge-shape .badge-shape-wiz__text, ytd-thumbnail-overlay-time-status-renderer #text')?.textContent||'').trim(),
+      desc:(v.querySelector('.metadata-snippet-text, #description-text')?.textContent||'').trim()};
+  }).filter(x=>x.id);
+  // Sentinel — a surviving continuation renderer alongside a short harvest means
+  // YouTube's infinite-scroll fetch never resolved and you hold page one only.
+  return {truncated: rows.length<N && !!document.querySelector('ytd-continuation-item-renderer'),
+    count: rows.length, rows: rows.slice(0,N)};
+}
+```
+
+For `javascript_tool` — pass this body, ending in the bare expression:
 
 ```js
 const N=20, SCROLLS=1, SEL='ytd-video-renderer, yt-lockup-view-model';
@@ -111,6 +146,7 @@ const rows=[...document.querySelectorAll(SEL)].map(v=>{
 `N` = rows kept per query, `SCROLLS` = load depth. `1/20` is fast; `3/40` favours recall — raise both when the brief asks for breadth.
 
 - An **empty array is a failure signal, not an empty topic** (selector drift or a load race). Re-run once with different vocabulary, then report — never proceed on a silent zero.
+- **`undefined` instead of an object is a third thing entirely: the wrong extractor form reached the tool.** Fix the call — re-send the block that matches `BROWSER` — and do not re-query, re-scroll, or widen the vocabulary. Nothing about the topic has been learned yet.
 - ⚠️ **`truncated: true` is the more dangerous failure, because it returns plausible data.** The continuation fetch silently failed and you are holding YouTube's first page. *Observed:* every query returned exactly **4 rows** at `1/20`, at `4/40`, and with an accumulator that collected across incremental scrolls; forcing it harder killed the renderer (`Runtime.evaluate timed out after 45000ms`). A run that trusts this curates a 4-per-query corpus and then reports a thin topic that is in fact enormous.
 
   **The remedy is more queries, not more scrolling.** Page one is a *sample* of one phrasing, so widen the query set — the vocabulary variants and authority-channel searches already in your Query plan — until the same sources start recurring across different phrasings. That recurrence, not row count, is what tells you the topic is covered. Then say so in coverage: discovery was page-one per query, N phrasings.

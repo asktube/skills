@@ -40,18 +40,25 @@ install.
 
 ## Prerequisites
 
-1. An **asktube** account with some of your YouTube library tracked, and the asktube **MCP server**
-   connected to your agent.
-2. **A Chrome the agent can drive**, for discovery on YouTube. Caption capture happens on asktube's
-   backend — nothing to install, and no tab to keep open or in focus. On **Cursor** that Chrome is
-   your own logged-in browser via [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp)
-   run with `--autoConnect`; the skill's
+Two MCP servers, both of which you set up yourself — the skill bundles neither. It checks both
+before it starts and stops with instructions if either is missing, rather than failing halfway
+through a run.
+
+1. **asktube**, with some of your YouTube library tracked. Sign up at
+   [asktube.xyz](https://asktube.xyz) and copy the MCP configuration from your dashboard
+   (Settings → MCP) into your agent.
+2. **A Chrome the agent can drive**, for discovery on YouTube — your own logged-in browser, not a
+   fresh profile. [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) with
+   `--autoConnect` is the default everywhere; it attaches to a Chrome that is *already open*, so
+   start one first, and it needs Node. On Claude Code, **Claude in Chrome works as a fallback** if
+   you'd rather not add DevTools. Caption capture happens on asktube's backend — no tab to keep open
+   or in focus for that. The skill's
    [`reference/tooling.md`](skills/deep-research/reference/tooling.md) has the exact config.
 
 Corpora are English-language for now; asktube's multi-language support is still in progress, so a
 run prefers English sources and says so in its coverage section.
 
-No API keys. No other plugins. Nothing else to configure.
+No YouTube Data API key. No other plugins. Nothing to configure beyond those two servers.
 
 ## Adding a skill
 

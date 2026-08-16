@@ -28,12 +28,25 @@ the *complete* set — **a skill directory nobody lists silently never loads in 
 `npx skills` still finds it by scanning. That asymmetry is exactly how a skill ends up "working on
 my machine" and missing for everyone who installed the plugin.
 
-**3. Write in Claude Code's tool vocabulary, and ship a `reference/tooling.md` with it.**
-Naming the exact tool (`ToolSearch`, `javascript_tool`, `AskUserQuestion`) is what makes a run fast
+**3. Name exact tools, and ship a `reference/tooling.md` with it.**
+Naming the exact tool (`ToolSearch`, `evaluate_script`, `AskUserQuestion`) is what makes a run fast
 and reproducible; generalising the prose to "use your browser tool" costs capability and buys
-little. The portability lives in one file per skill that maps each name to the capability it stands
-for, plus any requirement that cannot be substituted away. See
+little. Claude Code's vocabulary governs the *harness* — `ToolSearch`, `AskUserQuestion`, `Read`.
+The **browser** does not: Chrome DevTools MCP is the default in every client, with Claude in Chrome
+as a Claude-Code-only fallback, so a phase carries both vocabularies and `tooling.md` maps them.
+Where the two tools want genuinely different *code* — `evaluate_script` takes a function that
+returns, `javascript_tool` is a REPL where the last expression is the result — **ship both forms
+verbatim** rather than a form plus a conversion rule. An agent rewriting code at runtime is how you
+get a silent `undefined` that reads as a thin topic instead of a bug. See
 [`skills/deep-research/reference/tooling.md`](skills/deep-research/reference/tooling.md).
+
+**3a. A hard prerequisite gets a preflight, not a mid-run surprise.**
+If a skill can't work without something outside it, it states the probe that proves the thing is
+live, and the halt copy for when it isn't — up front, before the first phase. Prefer a probe that
+distinguishes failure *modes* (`me_get` separates not-configured from stale-config from
+no-access) over one that only asks whether a tool exists. Where the prerequisite is a service we
+don't control, point at its own setup page instead of copying its endpoint and credentials in here:
+a copy is one more thing to go stale, and connection details fail silently.
 
 **4. Every skill folder is self-contained.**
 `npx skills add <repo> --skill learn` installs *that one folder*. So a skill may never reference a
