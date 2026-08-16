@@ -9,3 +9,4 @@ skills-lock.json
 # Root-anchored on purpose: a bare `deep-research/` would also match
 # skills/deep-research/ and silently drop the skill itself.
 /deep-research/
+.commandcode/taste/
